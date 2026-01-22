@@ -328,6 +328,11 @@ func (c *Client) GetShotsForUser(userID int, fields []string) ([]Entity, error) 
 	shotIDs := make(map[int]bool)
 	for _, task := range tasks {
 		if entity, ok := task["entity"].(map[string]interface{}); ok {
+			// Check if relationship is wrapped in a "data" field
+			if data, ok := entity["data"].(map[string]interface{}); ok {
+				entity = data
+			}
+
 			if entityType, ok := entity["type"].(string); ok && entityType == "Shot" {
 				if id, ok := entity["id"].(float64); ok {
 					shotIDs[int(id)] = true
