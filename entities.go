@@ -317,6 +317,25 @@ func (c *Client) GetTasksForUser(userID int, fields []string) ([]Entity, error) 
 	return c.FindEntities("tasks", filters, fields)
 }
 
+func (c *Client) GetUserShotTasks(userID int, shotID int, fields []string) ([]Entity, error) {
+	filters := []interface{}{
+		[]interface{}{"entity", "is", map[string]interface{}{
+			"type": "Shot",
+			"id":   shotID,
+		}},
+		[]interface{}{"task_assignees", "is", map[string]interface{}{
+			"type": "HumanUser",
+			"id":   userID,
+		}},
+	}
+
+	if len(fields) == 0 {
+		fields = []string{"content", "sg_status_list", "task_assignees"}
+	}
+
+	return c.FindEntities("tasks", filters, fields)
+}
+
 func (c *Client) GetShotsForUser(userID int, fields []string) ([]Entity, error) {
 	// First get all tasks for the user
 	tasks, err := c.GetTasksForUser(userID, []string{"entity"})
