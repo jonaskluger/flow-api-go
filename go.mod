@@ -1,4 +1,4 @@
-module github.com/storybookstudios/traumschiff/flow-api
+module github.com/jonaskluger/flow-api-go
 
 go 1.21
 
