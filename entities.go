@@ -384,6 +384,56 @@ func (c *Client) GetShotsForUser(userID int, fields []string) ([]Entity, error) 
 	return c.FindEntities("shots", filters, fields)
 }
 
+// GetProjectsForUser retrieves all projects that a user is assigned to
+func (c *Client) GetProjectsForUser(userID int, fields []string) ([]Entity, error) {
+	filters := []interface{}{
+		[]interface{}{"users", "is", map[string]interface{}{
+			"type": "HumanUser",
+			"id":   userID,
+		}},
+	}
+
+	if len(fields) == 0 {
+		fields = []string{"name", "code", "sg_status"}
+	}
+
+	return c.FindEntities("projects", filters, fields)
+}
+
+// GetProjects retrieves all active projects
+func (c *Client) GetProjects(fields []string) ([]Entity, error) {
+	// Filter for active projects only
+	filters := []interface{}{
+		[]interface{}{"sg_status", "is", "Active"},
+	}
+
+	if len(fields) == 0 {
+		fields = []string{"name", "code", "sg_status"}
+	}
+
+	return c.FindEntities("projects", filters, fields)
+}
+
+// GetTasksForUserInProject retrieves all tasks for a user in a specific project
+func (c *Client) GetTasksForUserInProject(userID int, projectID int, fields []string) ([]Entity, error) {
+	filters := []interface{}{
+		[]interface{}{"task_assignees", "is", map[string]interface{}{
+			"type": "HumanUser",
+			"id":   userID,
+		}},
+		[]interface{}{"project", "is", map[string]interface{}{
+			"type": "Project",
+			"id":   projectID,
+		}},
+	}
+
+	if len(fields) == 0 {
+		fields = []string{"content", "entity", "sg_status_list", "project"}
+	}
+
+	return c.FindEntities("tasks", filters, fields)
+}
+
 // NewClientFromEnv creates a new client using environment variables
 // It will automatically try to load a .env file from common locations
 func NewClientFromEnv() (*Client, error) {
