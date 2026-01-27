@@ -269,15 +269,11 @@ func (c *Client) GetUserByName(name string) (Entity, error) {
 }
 
 func (c *Client) GetShots(projectID int, fields []string) ([]Entity, error) {
-	var filters interface{}
-
-	if projectID > 0 {
-		filters = []interface{}{
-			[]interface{}{"project", "is", map[string]interface{}{
-				"type": "Project",
-				"id":   projectID,
-			}},
-		}
+	filters := []interface{}{
+		[]interface{}{"project", "is", map[string]interface{}{
+			"type": "Project",
+			"id":   projectID,
+		}},
 	}
 
 	if len(fields) == 0 {
@@ -287,11 +283,15 @@ func (c *Client) GetShots(projectID int, fields []string) ([]Entity, error) {
 	return c.FindEntities("shots", filters, fields)
 }
 
-func (c *Client) GetTasksForShot(shotID int, fields []string) ([]Entity, error) {
+func (c *Client) GetTasksForShot(projectID int, shotID int, fields []string) ([]Entity, error) {
 	filters := []interface{}{
 		[]interface{}{"entity", "is", map[string]interface{}{
 			"type": "Shot",
 			"id":   shotID,
+		}},
+		[]interface{}{"project", "is", map[string]interface{}{
+			"type": "Project",
+			"id":   projectID,
 		}},
 	}
 
@@ -302,11 +302,15 @@ func (c *Client) GetTasksForShot(shotID int, fields []string) ([]Entity, error) 
 	return c.FindEntities("tasks", filters, fields)
 }
 
-func (c *Client) GetTasksForUser(userID int, fields []string) ([]Entity, error) {
+func (c *Client) GetTasksForUser(projectID int, userID int, fields []string) ([]Entity, error) {
 	filters := []interface{}{
 		[]interface{}{"task_assignees", "is", map[string]interface{}{
 			"type": "HumanUser",
 			"id":   userID,
+		}},
+		[]interface{}{"project", "is", map[string]interface{}{
+			"type": "Project",
+			"id":   projectID,
 		}},
 	}
 
@@ -317,7 +321,7 @@ func (c *Client) GetTasksForUser(userID int, fields []string) ([]Entity, error) 
 	return c.FindEntities("tasks", filters, fields)
 }
 
-func (c *Client) GetUserShotTasks(userID int, shotID int, fields []string) ([]Entity, error) {
+func (c *Client) GetUserShotTasks(projectID int, userID int, shotID int, fields []string) ([]Entity, error) {
 	filters := []interface{}{
 		[]interface{}{"entity", "is", map[string]interface{}{
 			"type": "Shot",
@@ -326,6 +330,10 @@ func (c *Client) GetUserShotTasks(userID int, shotID int, fields []string) ([]En
 		[]interface{}{"task_assignees", "is", map[string]interface{}{
 			"type": "HumanUser",
 			"id":   userID,
+		}},
+		[]interface{}{"project", "is", map[string]interface{}{
+			"type": "Project",
+			"id":   projectID,
 		}},
 	}
 
@@ -336,9 +344,9 @@ func (c *Client) GetUserShotTasks(userID int, shotID int, fields []string) ([]En
 	return c.FindEntities("tasks", filters, fields)
 }
 
-func (c *Client) GetShotsForUser(userID int, fields []string) ([]Entity, error) {
-	// First get all tasks for the user
-	tasks, err := c.GetTasksForUser(userID, []string{"entity"})
+func (c *Client) GetShotsForUser(projectID int, userID int, fields []string) ([]Entity, error) {
+	// First get all tasks for the user in the project
+	tasks, err := c.GetTasksForUser(projectID, userID, []string{"entity"})
 	if err != nil {
 		return nil, err
 	}
@@ -372,9 +380,13 @@ func (c *Client) GetShotsForUser(userID int, fields []string) ([]Entity, error) 
 		ids = append(ids, id)
 	}
 
-	// Get shot details
+	// Get shot details - filter by both shot IDs and project
 	filters := []interface{}{
 		[]interface{}{"id", "in", ids},
+		[]interface{}{"project", "is", map[string]interface{}{
+			"type": "Project",
+			"id":   projectID,
+		}},
 	}
 
 	if len(fields) == 0 {
@@ -415,7 +427,7 @@ func (c *Client) GetProjects(fields []string) ([]Entity, error) {
 }
 
 // GetTasksForUserInProject retrieves all tasks for a user in a specific project
-func (c *Client) GetTasksForUserInProject(userID int, projectID int, fields []string) ([]Entity, error) {
+func (c *Client) GetTasksForUserInProject(projectID int, userID int, fields []string) ([]Entity, error) {
 	filters := []interface{}{
 		[]interface{}{"task_assignees", "is", map[string]interface{}{
 			"type": "HumanUser",
