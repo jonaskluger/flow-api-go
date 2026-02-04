@@ -283,11 +283,45 @@ func (c *Client) GetShots(projectID int, fields []string) ([]Entity, error) {
 	return c.FindEntities("shots", filters, fields)
 }
 
+func (c *Client) GetAssets(projectID int, fields []string) ([]Entity, error) {
+	filters := []interface{}{
+		[]interface{}{"project", "is", map[string]interface{}{
+			"type": "Project",
+			"id":   projectID,
+		}},
+	}
+
+	if len(fields) == 0 {
+		fields = []string{"code", "description", "sg_status_list"}
+	}
+
+	return c.FindEntities("assets", filters, fields)
+}
+
 func (c *Client) GetTasksForShot(projectID int, shotID int, fields []string) ([]Entity, error) {
 	filters := []interface{}{
 		[]interface{}{"entity", "is", map[string]interface{}{
 			"type": "Shot",
 			"id":   shotID,
+		}},
+		[]interface{}{"project", "is", map[string]interface{}{
+			"type": "Project",
+			"id":   projectID,
+		}},
+	}
+
+	if len(fields) == 0 {
+		fields = []string{"content", "sg_status_list", "task_assignees"}
+	}
+
+	return c.FindEntities("tasks", filters, fields)
+}
+
+func (c *Client) GetTasksForAsset(projectID int, assetID int, fields []string) ([]Entity, error) {
+	filters := []interface{}{
+		[]interface{}{"entity", "is", map[string]interface{}{
+			"type": "Asset",
+			"id":   assetID,
 		}},
 		[]interface{}{"project", "is", map[string]interface{}{
 			"type": "Project",
@@ -326,6 +360,29 @@ func (c *Client) GetUserShotTasks(projectID int, userID int, shotID int, fields 
 		[]interface{}{"entity", "is", map[string]interface{}{
 			"type": "Shot",
 			"id":   shotID,
+		}},
+		[]interface{}{"task_assignees", "is", map[string]interface{}{
+			"type": "HumanUser",
+			"id":   userID,
+		}},
+		[]interface{}{"project", "is", map[string]interface{}{
+			"type": "Project",
+			"id":   projectID,
+		}},
+	}
+
+	if len(fields) == 0 {
+		fields = []string{"content", "sg_status_list", "task_assignees"}
+	}
+
+	return c.FindEntities("tasks", filters, fields)
+}
+
+func (c *Client) GetUserAssetTasks(projectID int, userID int, assetID int, fields []string) ([]Entity, error) {
+	filters := []interface{}{
+		[]interface{}{"entity", "is", map[string]interface{}{
+			"type": "Asset",
+			"id":   assetID,
 		}},
 		[]interface{}{"task_assignees", "is", map[string]interface{}{
 			"type": "HumanUser",
@@ -394,6 +451,58 @@ func (c *Client) GetShotsForUser(projectID int, userID int, fields []string) ([]
 	}
 
 	return c.FindEntities("shots", filters, fields)
+}
+
+func (c *Client) GetAssetsForUser(projectID int, userID int, fields []string) ([]Entity, error) {
+	// First get all tasks for the user in the project
+	tasks, err := c.GetTasksForUser(projectID, userID, []string{"entity"})
+	if err != nil {
+		return nil, err
+	}
+
+	// Extract unique asset IDs
+	assetIDs := make(map[int]bool)
+	for _, task := range tasks {
+		if entity, ok := task["entity"].(map[string]interface{}); ok {
+			// Check if relationship is wrapped in a "data" field
+			if data, ok := entity["data"].(map[string]interface{}); ok {
+				entity = data
+			}
+
+			if entityType, ok := entity["type"].(string); ok && entityType == "Asset" {
+				if id, ok := entity["id"].(float64); ok {
+					assetIDs[int(id)] = true
+				} else if id, ok := entity["id"].(int); ok {
+					assetIDs[id] = true
+				}
+			}
+		}
+	}
+
+	if len(assetIDs) == 0 {
+		return []Entity{}, nil
+	}
+
+	// Convert map keys to slice
+	ids := make([]int, 0, len(assetIDs))
+	for id := range assetIDs {
+		ids = append(ids, id)
+	}
+
+	// Get asset details - filter by both asset IDs and project
+	filters := []interface{}{
+		[]interface{}{"id", "in", ids},
+		[]interface{}{"project", "is", map[string]interface{}{
+			"type": "Project",
+			"id":   projectID,
+		}},
+	}
+
+	if len(fields) == 0 {
+		fields = []string{"code", "description", "sg_status_list", "project"}
+	}
+
+	return c.FindEntities("assets", filters, fields)
 }
 
 // GetProjectsForUser retrieves all projects that a user is assigned to
