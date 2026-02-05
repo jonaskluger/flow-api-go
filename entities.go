@@ -555,6 +555,71 @@ func (c *Client) GetTasksForUserInProject(projectID int, userID int, fields []st
 	return c.FindEntities("tasks", filters, fields)
 }
 
+// GetVersionsForShot retrieves all versions for a specific shot
+func (c *Client) GetVersionsForShot(projectID int, shotID int, fields []string) ([]Entity, error) {
+	filters := []interface{}{
+		[]interface{}{"entity", "is", map[string]interface{}{
+			"type": "Shot",
+			"id":   shotID,
+		}},
+		[]interface{}{"project", "is", map[string]interface{}{
+			"type": "Project",
+			"id":   projectID,
+		}},
+	}
+
+	if len(fields) == 0 {
+		fields = []string{"code", "sg_status_list", "description", "created_at", "user"}
+	}
+
+	return c.FindEntities("versions", filters, fields)
+}
+
+// GetVersionsForAsset retrieves all versions for a specific asset
+func (c *Client) GetVersionsForAsset(projectID int, assetID int, fields []string) ([]Entity, error) {
+	filters := []interface{}{
+		[]interface{}{"entity", "is", map[string]interface{}{
+			"type": "Asset",
+			"id":   assetID,
+		}},
+		[]interface{}{"project", "is", map[string]interface{}{
+			"type": "Project",
+			"id":   projectID,
+		}},
+	}
+
+	if len(fields) == 0 {
+		fields = []string{"code", "sg_status_list", "description", "created_at", "user"}
+	}
+
+	return c.FindEntities("versions", filters, fields)
+}
+
+func NewClient(url string, script_name string, script_key string) (*Client, error) {
+	// Try to load .env file (silently fail if not found)
+	tryLoadEnv()
+
+	siteURL := getEnv("FLOW_SITE_URL")
+	scriptName := getEnv("FLOW_SCRIPT_NAME")
+	scriptKey := getEnv("FLOW_SCRIPT_KEY")
+
+	if siteURL == "" {
+		return nil, fmt.Errorf("FLOW_SITE_URL environment variable is required")
+	}
+	if scriptName == "" {
+		return nil, fmt.Errorf("FLOW_SCRIPT_NAME environment variable is required")
+	}
+	if scriptKey == "" {
+		return nil, fmt.Errorf("FLOW_SCRIPT_KEY environment variable is required")
+	}
+
+	return NewClient(Config{
+		SiteURL:    siteURL,
+		ScriptName: scriptName,
+		ScriptKey:  scriptKey,
+	})
+}
+
 // NewClientFromEnv creates a new client using environment variables
 // It will automatically try to load a .env file from common locations
 func NewClientFromEnv() (*Client, error) {
