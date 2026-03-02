@@ -595,6 +595,32 @@ func (c *Client) GetVersionsForAsset(projectID int, assetID int, fields []string
 	return c.FindEntities("versions", filters, fields)
 }
 
+// GetVersionsByStatus retrieves all versions in a project with a specific status
+func (c *Client) GetVersionsByStatus(projectID int, status string, fields []string) ([]Entity, error) {
+	if strings.TrimSpace(status) == "" {
+		return nil, fmt.Errorf("status is required")
+	}
+
+	filters := []interface{}{
+		[]interface{}{"sg_status_list", "is", status},
+		[]interface{}{"project", "is", map[string]interface{}{
+			"type": "Project",
+			"id":   projectID,
+		}},
+	}
+
+	if len(fields) == 0 {
+		fields = []string{"code", "sg_status_list", "description", "created_at", "user"}
+	}
+
+	return c.FindEntities("versions", filters, fields)
+}
+
+// GetVersionsPushToEdit retrieves all versions in a project with status "pted" (push to edit)
+func (c *Client) GetVersionsPushToEdit(projectID int, fields []string) ([]Entity, error) {
+	return c.GetVersionsByStatus(projectID, "pted", fields)
+}
+
 // NewClientFromEnv creates a new client using environment variables
 // It will automatically try to load a .env file from common locations
 func NewClientFromEnv() (*Client, error) {
