@@ -616,6 +616,27 @@ func (c *Client) GetVersionsByStatus(projectID int, status string, fields []stri
 	return c.FindEntities("versions", filters, fields)
 }
 
+// GetVersionsByStatus retrieves all versions in a project with a specific status
+func (c *Client) GetVersionsByEditorialStatus(projectID int, status string, fields []string) ([]Entity, error) {
+	if strings.TrimSpace(status) == "" {
+		return nil, fmt.Errorf("status is required")
+	}
+
+	filters := []interface{}{
+		[]interface{}{"sg_editorial_status", "is", status},
+		[]interface{}{"project", "is", map[string]interface{}{
+			"type": "Project",
+			"id":   projectID,
+		}},
+	}
+
+	if len(fields) == 0 {
+		fields = []string{"code", "sg_editorial_status", "description", "created_at", "user"}
+	}
+
+	return c.FindEntities("versions", filters, fields)
+}
+
 // GetVersionsPushToEdit retrieves all versions in a project with status "pted" (push to edit)
 func (c *Client) GetVersionsPushToEdit(projectID int, fields []string) ([]Entity, error) {
 	return c.GetVersionsByStatus(projectID, "pted", fields)
